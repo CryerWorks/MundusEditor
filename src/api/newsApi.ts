@@ -12,7 +12,7 @@ export const fetchArticles = async (country: CountryCode, page: number = 1, filt
         time: filters.time
     });
 
-    const response = await fetch(`${API_BASE_URL}/articles/${country}?${params}`);
+    const response = await fetch(`${API_BASE_URL}/api/articles/${country}?${params}`);
     if (!response.ok) {
         throw new Error('Failed to fetch articles');
     }
@@ -20,7 +20,7 @@ export const fetchArticles = async (country: CountryCode, page: number = 1, filt
 };
 
 export const fetchSources = async (country: CountryCode): Promise<string[]> => {
-    const response = await fetch(`${API_BASE_URL}/sources/${country}`);
+    const response = await fetch(`${API_BASE_URL}/api/sources/${country}`);
     if (!response.ok) {
         throw new Error('Failed to fetch sources');
     }
@@ -28,7 +28,7 @@ export const fetchSources = async (country: CountryCode): Promise<string[]> => {
 };
 
 export const fetchCategories = async (country: CountryCode): Promise<string[]> => {
-    const response = await fetch(`${API_BASE_URL}/categories/${country}`);
+    const response = await fetch(`${API_BASE_URL}/api/categories/${country}`);
     if (!response.ok) {
         throw new Error('Failed to fetch categories');
     }
@@ -36,7 +36,7 @@ export const fetchCategories = async (country: CountryCode): Promise<string[]> =
 };
 
 export const fetchArticlePreview = async (country: CountryCode, articleId: number) => {
-    const response = await fetch(`${API_BASE_URL}/article-preview/${country}/${articleId}`);
+    const response = await fetch(`${API_BASE_URL}/api/article-preview/${country}/${articleId}`);
     if (!response.ok) {
         throw new Error('Failed to fetch article preview');
     }
@@ -51,7 +51,7 @@ export const summarizeArticle = async (article: Article, instructions: string, s
             source: article.source
         });
 
-        const response = await fetch(`${API_BASE_URL}/summarize`, {
+        const response = await fetch(`${API_BASE_URL}/api/summarize`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -98,11 +98,10 @@ export const summarizeArticle = async (article: Article, instructions: string, s
 export const summarizeMergedArticles = async (articles: Article[], instructions: string, selectedText?: string): Promise<{ summary: string, articles: Article[] }> => {
     try {
         console.log('Sending request to summarize merged articles:', {
-            articleCount: articles.length,
-            instructions: instructions
+            articleCount: articles.length
         });
 
-        const response = await fetch(`${API_BASE_URL}/summarize-merged`, {
+        const response = await fetch(`${API_BASE_URL}/api/summarize-merged`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -130,7 +129,7 @@ export const summarizeMergedArticles = async (articles: Article[], instructions:
                 errorData: responseData
             });
             throw new Error(
-                `Failed to generate merged summary: ${responseData.error || response.statusText}\n` +
+                `Failed to generate summary: ${responseData.error || response.statusText}\n` +
                 `Error type: ${responseData.error_type || 'Unknown'}\n` +
                 `Error details: ${responseData.error_args || 'No additional details'}`
             );
