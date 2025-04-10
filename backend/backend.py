@@ -30,16 +30,19 @@ CORS(app, resources={
 openai.api_key = os.getenv('OPENAI_API_KEY')
 
 DATABASES = {
-    'swe': 'swedish_news_URLs.db',
-    'pol': 'polish_news_URLs.db', 
-    'fin': 'finnish_news_URLs.db',
-    'den': 'danish_news_URLs.db'
+    'swe': 'data/swedish_news_URLs.db',
+    'pol': 'data/polish_news_URLs.db', 
+    'fin': 'data/finnish_news_URLs.db',
+    'den': 'data/danish_news_URLs.db'
 }
 
 def get_db_connection(country_code):
     db_path = DATABASES.get(country_code.lower())
     if not db_path:
         raise ValueError("Unsupported country code")
+    
+    # Ensure the data directory exists
+    os.makedirs('data', exist_ok=True)
     
     # Ensure the database file exists
     if not os.path.exists(db_path):
