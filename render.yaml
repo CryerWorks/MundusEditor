@@ -7,7 +7,6 @@ services:
     envVars:
       - key: VITE_API_URL
         value: https://mundus-editor-backend.onrender.com
-    staticPublishPath: dist
 
   - type: web
     name: mundus-editor-backend
@@ -16,10 +15,7 @@ services:
     startCommand: gunicorn backend.backend:app
     envVars:
       - key: OPENAI_API_KEY
-        fromService:
-          name: mundus-editor-backend
-          type: env
-          property: OPENAI_API_KEY
+        sync: false
       - key: FLASK_ENV
         value: production
     healthCheckPath: /health 
