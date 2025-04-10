@@ -1,0 +1,162 @@
+.editor-block {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-width: 0;
+}
+
+.editor-tabs {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 0.5rem;
+}
+
+.editor-tab {
+    cursor: pointer;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    background: #f8f9fa;
+    transition: all 0.2s ease;
+}
+
+.editor-tab:hover {
+    background: #e9ecef;
+}
+
+.editor-tab.active {
+    background: var(--deep-blue);
+    color: white;
+}
+
+.editor-content {
+    display: none;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+}
+
+.editor-content.active {
+    display: flex;
+}
+
+.search-bar {
+    margin-bottom: 1rem;
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 0.875rem;
+}
+
+.writeups-container {
+    flex: 1;
+    overflow-y: auto;
+    padding-right: 0.5rem;
+}
+
+.writeup-card {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+    overflow: hidden;
+}
+
+.writeup-header {
+    padding: 1rem;
+    background: #f8f9fa;
+    border-bottom: 1px solid #ddd;
+}
+
+.writeup-title {
+    margin-bottom: 0.5rem;
+}
+
+.writeup-title h3 {
+    margin: 0;
+    font-size: 1.125rem;
+    color: var(--deep-blue);
+}
+
+.writeup-meta {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.75rem;
+    color: #666;
+}
+
+.save-btn {
+    margin-top: 1rem;
+    padding: 0.5rem 1rem;
+    background: var(--deep-blue);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.save-btn:hover {
+    opacity: 0.9;
+}
+
+.merged-writeup-button {
+    margin-top: 1rem;
+    padding: 0.75rem 1rem;
+    background: var(--deep-blue);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    transition: all 0.2s ease;
+}
+
+.merged-writeup-button:hover:not(:disabled) {
+    opacity: 0.9;
+}
+
+.merged-writeup-button:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+.progress-spinner {
+    width: 1rem;
+    height: 1rem;
+    border: 2px solid #fff;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Add styles for the Quill editor container */
+.writeup-editor .ql-container {
+    min-height: 150px;
+    border: 1px solid #ccc;
+    background-color: #fff;
+}
+
+/* You might need to adjust toolbar styles if needed */
+.writeup-editor .ql-toolbar {
+    border-bottom: 1px solid #ccc;
+}
+
+/* Ensure the editor content is visible */
+.editor-content.active {
+    display: block;
+}
+
+.editor-content {
+    display: none;
+} 

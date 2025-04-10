@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mundus Editor - News Explorer</title>
+    <link rel="stylesheet" href="frontpagetest.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="company-logo">Mundus Editor</div>
+            <div class="country-selector">
+                <span class="active">SWE</span>/<span>POL</span>/<span>FIN</span>/<span>DEN</span>
+            </div>
+        </div>
+
+        <!-- Add progress indicator -->
+        <div class="progress-indicator" id="progressIndicator">
+            <div class="progress-spinner"></div>
+            <p>Generating writeup...</p>
+        </div>
+
+        <div class="search-controls">
+            <input type="text" class="search-bar" id="globalSearch" placeholder="Search across all content...">
+        </div>
+
+        <div class="main-content">
+            <div class="content-block" id="newsBlock">
+                <h2>News</h2>
+                <div class="search-header">
+                    <span class="current-db" id="currentDatabase">Database: SWE</span>
+                    <input type="text" class="search-bar" placeholder="Search news articles...">
+                </div>
+                <div class="search-filters">
+                    <div class="filter-group">
+                        <select id="sourceFilter">
+                            <option value="">All Sources</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <input type="text" class="tag-input" placeholder="Tags" id="tagSearch">
+                    </div>
+                    <div class="filter-group">
+                        <select id="categoryFilter">
+                            <option value="">All Categories</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <select id="timeFilter">
+                            <option value="24">Last 24 hours</option>
+                            <option value="48">Last 48 hours</option>
+                            <option value="72">Last 72 hours</option>
+                            <option value="168">Last Week</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="articles-grid" id="newsContainer">
+                    <!-- News articles will be dynamically inserted here -->
+                </div>
+                <div class="pagination-controls">
+                    <button id="prevPage" class="pagination-btn" disabled>Previous</button>
+                    <span id="pageInfo">Page 1 of 1</span>
+                    <button id="nextPage" class="pagination-btn" disabled>Next</button>
+                </div>
+            </div>
+
+            <div class="content-block" id="editorBlock">
+                <h2>Editor</h2>
+                <div class="editor-tabs">
+                    <div class="editor-tab active" data-tab="writeups">Writeups</div>
+                    <div class="editor-tab" data-tab="instructions">Writeup Instructions</div>
+                </div>
+                
+                <div class="editor-content active" id="writeups-content">
+                    <input type="text" class="search-bar" placeholder="Search writeups...">
+                    <div class="articles-grid" id="editorContainer">
+                        <!-- Writeups will be dynamically inserted here -->
+                    </div>
+                </div>
+
+                <div class="editor-content" id="instructions-content">
+                    <textarea class="writeup-instructions" id="apiInstructions" placeholder="Enter instructions for the AI summarization...">Please provide a concise summary of the following news article, highlighting the key points and maintaining an objective tone.</textarea>
+                    <button onclick="saveInstructions()" style="padding: 8px 16px; background: var(--deep-blue); color: white; border: none; border-radius: 4px; cursor: pointer;">Save Instructions</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add merged writeup button -->
+    <button id="mergedWriteupButton" class="merged-writeup-button" onclick="createMergedWriteup()">
+        Generate Merged Writeup
+    </button>
+
+    <!-- Add custom modal for rewrite instructions -->
+    <div class="modal-overlay" id="rewriteModal">
+        <div class="modal-content">
+            <h3>Rewrite Instructions</h3>
+            <textarea id="rewriteInstructions" placeholder="Enter your instructions for rewriting the selected text..."></textarea>
+            <div class="modal-buttons">
+                <button onclick="submitRewrite()" class="save-btn">Rewrite</button>
+                <button onclick="closeRewriteModal()" class="delete-btn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Country selector functionality
+        document.querySelector('.country-selector').addEventListener('click', function(e) {
+            if (e.target.tagName === 'SPAN') {
+                document.querySelectorAll('.country-selector span').forEach(span => {
+                    span.classList.remove('active');
+                });
+                e.target.classList.add('active');
+                const selectedCountry = e.target.textContent;
+                document.getElementById('currentDatabase').textContent = `Database: ${selectedCountry}`;
+                fetchSources(selectedCountry);
+                fetchCategories(selectedCountry);
+                fetchArticles(selectedCountry);
+            }
+        });
+
+        // Rich text editor functionality
+        function execCommand(command) {
+            document.execCommand(command, false, null);
+        }
+
+        function createLink() {
+            const url = prompt('Enter URL:');
+            if (url) {
+                document.execCommand('createLink', false, url);
+            }
+        }
+
+        // Add encoding handling for fetch requests
+        const fetchOptions = {
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json; charset=utf-8'
+            }
+        };
+
+        // Add pagination state
+        let currentPage = 1;
+        let totalPages = 1;
+        let totalArticles = 0;
+
+        // Function to fetch articles from the backend
+        async function fetchArticles(country = 'SWE') {
+            try {
+                const searchQuery = document.querySelector('#newsBlock .search-bar').value;
+                const source = document.getElementById('sourceFilter').value;
+                const category = document.getElementById('categoryFilter').value;
+                const timeFilter = document.getElementById('timeFilter').value;  // Get selected time value
+                
+                const response = await fetch(
+                    `/api/articles/${country.toLowerCase()}?` + 
+                    `search=${encodeURIComponent(searchQuery)}&` +
+                    `source=${encodeURIComponent(source)}&` +
+                    `category=${encodeURIComponent(category)}&` +
+                    `time=${encodeURIComponent(timeFilter)}&` +  // Add time parameter
+                    `page=${currentPage}`, 
+                    fetchOptions
+                );
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                displayArticles(data.articles);
+                
+                // Update pagination info
+                totalPages = data.total_pages;
+                totalArticles = data.total;
+                updatePaginationControls();
+            } catch (error) {
+                console.error('Error fetching articles:', error);
+            }
+        }
+
+        // Function to fetch available sources
+        async function fetchSources(country = 'SWE') {
+            try {
+                const response = await fetch(`/api/sources/${country.toLowerCase()}`, fetchOptions);
+                const sources = await response.json();
+                updateSourceFilter(sources);
+            } catch (error) {
+                console.error('Error fetching sources:', error);
+            }
+        }
+
+        // Function to update source filter dropdown
+        function updateSourceFilter(sources) {
+            const sourceFilter = document.getElementById('sourceFilter');
+            sourceFilter.innerHTML = '<option value="">All Sources</option>';
+            sources.forEach(source => {
+                sourceFilter.innerHTML += `<option value="${source}">${source}</option>`;
+            });
+        }
+
+        // Function to fetch available categories
+        async function fetchCategories(country = 'SWE') {
+            try {
+                const response = await fetch(`/api/categories/${country.toLowerCase()}`, fetchOptions);
+                const categories = await response.json();
+                updateCategoryFilter(categories);
+            } catch (error) {
+                console.error('Error fetching categories:', error);
+            }
+        }
+
+        // Function to update category filter dropdown
+        function updateCategoryFilter(categories) {
+            const categoryFilter = document.getElementById('categoryFilter');
+            
+            // Clear existing options except the first "All Categories" option
+            while (categoryFilter.options.length > 1) {
+                categoryFilter.remove(1);
+            }
+            
+            // Add categories from the database
+            categories.forEach(category => {
+                const option = document.createElement('option');
+                option.value = category;
+                option.textContent = category;
+                categoryFilter.appendChild(option);
+            });
+        }
+
+        // Function to display articles in the grid
+        function displayArticles(articles) {
+            const newsContainer = document.getElementById('newsContainer');
+            const editorContainer = document.getElementById('editorContainer');
+            
+            newsContainer.innerHTML = '';
+            editorContainer.innerHTML = '';
+
+            articles.forEach(article => {
+                const articleElement = document.createElement('div');
+                articleElement.className = 'article-card';
+                articleElement.dataset.articleId = article.id;
+                articleElement.innerHTML = `
+                    <input type="checkbox" class="article-checkbox" onclick="event.stopPropagation(); handleArticleSelection(this, ${article.id}, this.closest('.article-card'))">
+                    <div class="article-content">
+                    <h3>${article.title}</h3>
+                        <p>Source: ${article.source}</p>
+                        <p>Category: ${article.Category || 'Uncategorized'}</p>
+                        <p>Published: ${new Date(article.published).toLocaleDateString()}</p>
+                        <a href="${article.url}" target="_blank">Read more</a>
+                    </div>
+                    <div class="article-preview">
+                        <h4>Article Preview</h4>
+                        <p>Loading preview...</p>
+                    </div>
+                `;
+                
+                articleElement.addEventListener('click', async (e) => {
+                    // Don't trigger if clicking the preview or its children
+                    if (e.target.closest('.article-preview')) return;
+                    
+                    // If clicking the same article that's already selected, deselect it
+                    if (articleElement.classList.contains('selected')) {
+                        articleElement.classList.remove('selected');
+                        const preview = articleElement.querySelector('.article-preview');
+                        preview.classList.remove('active');
+                        preview.style.display = 'none';
+                        return;
+                    }
+                    
+                    // Remove selected class from all articles
+                    document.querySelectorAll('.article-card').forEach(card => {
+                        card.classList.remove('selected');
+                        // Hide preview when article is deselected
+                        const preview = card.querySelector('.article-preview');
+                        if (preview) {
+                            preview.classList.remove('active');
+                            preview.style.display = 'none';
+                        }
+                    });
+                    
+                    // Add selected class to clicked article
+                    articleElement.classList.add('selected');
+                    
+                    // Show preview
+                    const preview = articleElement.querySelector('.article-preview');
+                    preview.classList.add('active');
+                    preview.style.display = 'block';
+                    
+                    try {
+                        const country = document.querySelector('.country-selector span.active').textContent;
+                        const response = await fetch(`/api/article-preview/${country.toLowerCase()}/${article.id}`, fetchOptions);
+                        const previewData = await response.json();
+                        
+                        preview.innerHTML = `
+                            <div class="preview-content">
+                                ${previewData.preview?.image ? `<img src="${previewData.preview.image}" alt="Article preview" class="preview-image">` : ''}
+                                <div class="preview-text">
+                                    <p class="preview-description">${previewData.preview?.description || 'No preview available'}</p>
+                                    <div class="preview-meta">
+                                        ${previewData.preview?.favicon ? `<img src="${previewData.preview.favicon}" alt="Site favicon" class="preview-favicon">` : ''}
+                                        <span>${previewData.source}</span>
+                                        <span>•</span>
+                                        <span>${new Date(previewData.published).toLocaleDateString()}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="preview-actions">
+                                <button onclick='createWriteup(${JSON.stringify(article).replace(/'/g, "\\'").replace(/"/g, "&quot;")})'>Create Writeup</button>
+                                <button onclick="window.open('${previewData.url}', '_blank')">Read Full Article</button>
+                            </div>
+                        `;
+
+                        // Add word-by-word animation
+                        const description = preview.querySelector('.preview-description');
+                        if (description) {
+                            const words = description.textContent.split(' ');
+                            description.textContent = '';
+                            words.forEach((word, index) => {
+                                const span = document.createElement('span');
+                                span.textContent = word + ' ';
+                                span.style.animationDelay = `${index * 0.05}s`;
+                                description.appendChild(span);
+                            });
+                        }
+
+                        // Add loaded class to trigger animations
+                        setTimeout(() => {
+                            const previewContent = preview.querySelector('.preview-content');
+                            const previewImage = preview.querySelector('.preview-image');
+                            if (previewContent) previewContent.classList.add('loaded');
+                            if (previewImage) previewImage.classList.add('loaded');
+                        }, 50);
+                    } catch (error) {
+                        preview.innerHTML = '<p>Error loading preview</p>';
+                    }
+                });
+                
+                    newsContainer.appendChild(articleElement);
+            });
+        }
+
+        // Function to create a writeup using OpenAI
+        async function createWriteup(article) {
+            try {
+                console.log('Creating writeup for article:', article);
+                const instructions = document.getElementById('apiInstructions').value;
+                console.log('Using instructions:', instructions);
+                
+                // Show progress indicator
+                const progressIndicator = document.getElementById('progressIndicator');
+                progressIndicator.style.display = 'block';
+                
+                // Mark the article as processed with a grey border and banner
+                const articleCard = document.querySelector(`.article-card[data-article-id="${article.id}"]`);
+                if (articleCard) {
+                    articleCard.classList.add('processed');
+                }
+                
+                const response = await fetch('/api/summarize', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        article: article,
+                        instructions: instructions
+                    })
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Failed to create writeup');
+                }
+                
+                const writeup = await response.json();
+                console.log('Received writeup:', writeup);
+                
+                // Hide progress indicator after writeup is generated
+                progressIndicator.style.display = 'none';
+                
+                // Create a new writeup block with rich text editor
+                const writeupElement = document.createElement('div');
+                writeupElement.className = 'writeup-card';
+                writeupElement.dataset.articleId = article.id;
+                writeupElement.innerHTML = `
+                    <div class="writeup-header">
+                        <div class="writeup-title">
+                            <h3>${article.title}</h3>
+                            <div class="writeup-meta">
+                                <span>Source: ${article.source}</span>
+                                <span>•</span>
+                                <span>Generated: ${new Date().toLocaleDateString()}</span>
+                            </div>
+                        </div>
+                        <div class="writeup-actions">
+                            <button onclick="copyWriteup(this)" class="save-btn">Copy to Clipboard</button>
+                            <button onclick="deleteWriteup(this)" class="delete-btn">Delete</button>
+                        </div>
+                    </div>
+                    <div class="writeup-editor">
+                        <div class="editor-toolbar">
+                            <select class="font-family" onchange="execCommand('fontName', false, this.value)">
+                                <option value="Arial">Arial</option>
+                                <option value="Times New Roman">Times New Roman</option>
+                                <option value="Courier New">Courier New</option>
+                                <option value="Georgia">Georgia</option>
+                            </select>
+                            <select class="font-size" onchange="execCommand('fontSize', false, this.value)">
+                                <option value="1">Small</option>
+                                <option value="3" selected>Normal</option>
+                                <option value="5">Large</option>
+                                <option value="7">Extra Large</option>
+                            </select>
+                            <button onclick="execCommand('bold')"><strong>B</strong></button>
+                            <button onclick="execCommand('italic')"><em>I</em></button>
+                            <button onclick="execCommand('strikethrough')"><strike>S</strike></button>
+                            <button onclick="createLink()">🔗</button>
+                        </div>
+                        <div class="writeup-content" contenteditable="true">
+                            <strong>Generated Summary:</strong><br><br>
+                            ${writeup.summary}<br><br>
+                            <em>As reported by <a href="${article.url}" target="_blank">${article.source}</a></em>
+                        </div>
+                        <div class="writeup-footer">
+                            <button onclick="regenerateWriteup(this)" class="rewrite-btn">Rewrite with custom instructions</button>
+                        </div>
+                    </div>
+                `;
+                
+                const editorContainer = document.getElementById('editorContainer');
+                if (!editorContainer) {
+                    throw new Error('Editor container not found');
+                }
+                
+                editorContainer.prepend(writeupElement);
+                console.log('Writeup added to editor container');
+            } catch (error) {
+                console.error('Error creating writeup:', error);
+                alert('Failed to create writeup: ' + error.message);
+            }
+        }
+
+        // Replace saveWriteup with copyWriteup
+        function copyWriteup(button) {
+            const writeupCard = button.closest('.writeup-card');
+            const content = writeupCard.querySelector('.writeup-content').innerHTML;
+            
+            // Create a temporary div to handle HTML content
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = content;
+            
+            // Create a Blob with HTML content
+            const blob = new Blob([tempDiv.innerHTML], { type: 'text/html' });
+            const clipboardItem = new ClipboardItem({
+                'text/html': blob
+            });
+            
+            // Copy to clipboard with formatting
+            navigator.clipboard.write([clipboardItem]).then(() => {
+                // Change button text temporarily to show success
+                const originalText = button.textContent;
+                button.textContent = 'Copied!';
+                setTimeout(() => {
+                    button.textContent = originalText;
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy formatted text: ', err);
+                // Fallback to plain text if HTML copy fails
+                navigator.clipboard.writeText(tempDiv.innerText).then(() => {
+                    const originalText = button.textContent;
+                    button.textContent = 'Copied!';
+                    setTimeout(() => {
+                        button.textContent = originalText;
+                    }, 2000);
+                }).catch(err => {
+                    console.error('Failed to copy text: ', err);
+                    alert('Failed to copy to clipboard');
+                });
+            });
+        }
+
+        // Add these new functions for managing writeups
+        function deleteWriteup(button) {
+            if (confirm('Are you sure you want to delete this writeup?')) {
+                const writeupCard = button.closest('.writeup-card');
+                writeupCard.remove();
+            }
+        }
+
+        // Update filterArticles function to reset page when filters change
+        function filterArticles() {
+            currentPage = 1;
+            const country = document.querySelector('.country-selector span.active').textContent;
+            fetchArticles(country);
+        }
+
+        // Global search functionality
+        document.getElementById('globalSearch').addEventListener('input', function(e) {
+            const country = document.querySelector('.country-selector span.active').textContent;
+            fetchArticles(country);
+        });
+
+        // Add event listeners for all filter controls
+        document.querySelector('#newsBlock .search-bar').addEventListener('input', filterArticles);
+        document.getElementById('sourceFilter').addEventListener('change', filterArticles);
+        document.getElementById('categoryFilter').addEventListener('change', filterArticles);
+        document.getElementById('timeFilter').addEventListener('change', filterArticles);
+
+        // Editor tab functionality
+        document.querySelector('.editor-tabs').addEventListener('click', function(e) {
+            if (e.target.classList.contains('editor-tab')) {
+                document.querySelectorAll('.editor-tab').forEach(tab => tab.classList.remove('active'));
+                document.querySelectorAll('.editor-content').forEach(content => content.classList.remove('active'));
+                
+                e.target.classList.add('active');
+                document.getElementById(`${e.target.dataset.tab}-content`).classList.add('active');
+            }
+        });
+
+        // Save instructions functionality
+        function saveInstructions() {
+            const instructions = document.getElementById('apiInstructions').value;
+            localStorage.setItem('writeupInstructions', instructions);
+            alert('Instructions saved successfully!');
+        }
+
+        // Load saved instructions and initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedInstructions = localStorage.getItem('writeupInstructions');
+            if (savedInstructions) {
+                document.getElementById('apiInstructions').value = savedInstructions;
+            }
+            fetchSources();
+            fetchCategories();
+            fetchArticles();
+        });
+
+        // Add click outside handler
+        document.addEventListener('click', function(e) {
+            // Check if click is outside any article card
+            if (!e.target.closest('.article-card')) {
+                // Remove selected class from all articles
+                document.querySelectorAll('.article-card').forEach(card => {
+                    card.classList.remove('selected');
+                    // Hide preview when article is deselected
+                    const preview = card.querySelector('.article-preview');
+                    if (preview) {
+                        preview.classList.remove('active');
+                        preview.style.display = 'none';
+                    }
+                });
+            }
+        });
+
+        // Add selected articles tracking
+        let selectedArticles = new Set();
+
+        // Function to update merged writeup button visibility
+        function updateMergedWriteupButton() {
+            const button = document.getElementById('mergedWriteupButton');
+            if (selectedArticles.size > 0) {
+                button.classList.add('visible');
+            } else {
+                button.classList.remove('visible');
+            }
+        }
+
+        // Function to handle article selection
+        function handleArticleSelection(checkbox, articleId, articleCard) {
+            if (checkbox.checked) {
+                selectedArticles.add(articleId);
+                articleCard.classList.add('selected-for-merge');
+            } else {
+                selectedArticles.delete(articleId);
+                articleCard.classList.remove('selected-for-merge');
+            }
+            updateMergedWriteupButton();
+        }
+
+        // Function to create merged writeup
+        async function createMergedWriteup() {
+            if (selectedArticles.size === 0) return;
+
+            const articles = Array.from(selectedArticles).map(id => {
+                const card = document.querySelector(`.article-card[data-article-id="${id}"]`);
+                return {
+                    id: id,
+                    title: card.querySelector('h3').textContent,
+                    source: card.querySelector('p').textContent.replace('Source: ', ''),
+                    url: card.querySelector('a').href,
+                    published: card.querySelector('p:nth-child(3)').textContent.replace('Published: ', '')
+                };
+            });
+
+            try {
+                console.log('Creating merged writeup for articles:', articles);
+                const instructions = document.getElementById('apiInstructions').value;
+                
+                // Show progress indicator
+                const progressIndicator = document.getElementById('progressIndicator');
+                progressIndicator.style.display = 'block';
+                
+                // Mark articles as processed
+                articles.forEach(article => {
+                    const articleCard = document.querySelector(`.article-card[data-article-id="${article.id}"]`);
+                    if (articleCard) {
+                        articleCard.classList.add('processed');
+                    }
+                });
+
+                const response = await fetch('/api/summarize-merged', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        articles: articles,
+                        instructions: instructions
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Failed to create merged writeup');
+                }
+
+                const writeup = await response.json();
+                
+                // Hide progress indicator
+                progressIndicator.style.display = 'none';
+
+                // Create writeup element
+                const writeupElement = document.createElement('div');
+                writeupElement.className = 'writeup-card';
+                // Store the article IDs as a data attribute
+                writeupElement.dataset.articleIds = JSON.stringify(articles.map(a => a.id));
+                // Set a unique ID for the merged writeup
+                writeupElement.dataset.articleId = 'merged-' + articles.map(a => a.id).join('-');
+                writeupElement.innerHTML = `
+                    <div class="writeup-header">
+                        <div class="writeup-title">
+                            <h3>Merged Summary: ${articles.length} Articles</h3>
+                            <div class="writeup-meta">
+                                <span>Generated: ${new Date().toLocaleDateString()}</span>
+                            </div>
+                        </div>
+                        <div class="writeup-actions">
+                            <button onclick="copyWriteup(this)" class="save-btn">Copy to Clipboard</button>
+                            <button onclick="deleteWriteup(this)" class="delete-btn">Delete</button>
+                        </div>
+                    </div>
+                    <div class="writeup-editor">
+                        <div class="editor-toolbar">
+                            <select class="font-family" onchange="execCommand('fontName', false, this.value)">
+                                <option value="Arial">Arial</option>
+                                <option value="Times New Roman">Times New Roman</option>
+                                <option value="Courier New">Courier New</option>
+                                <option value="Georgia">Georgia</option>
+                            </select>
+                            <select class="font-size" onchange="execCommand('fontSize', false, this.value)">
+                                <option value="1">Small</option>
+                                <option value="3" selected>Normal</option>
+                                <option value="5">Large</option>
+                                <option value="7">Extra Large</option>
+                            </select>
+                            <button onclick="execCommand('bold')"><strong>B</strong></button>
+                            <button onclick="execCommand('italic')"><em>I</em></button>
+                            <button onclick="execCommand('strikethrough')"><strike>S</strike></button>
+                            <button onclick="createLink()">🔗</button>
+                        </div>
+                        <div class="writeup-content" contenteditable="true">
+                            <strong>Merged Summary:</strong><br><br>
+                            ${writeup.summary}<br><br>
+                            <em>Sources:</em><br>
+                            ${articles.map(article => `<a href="${article.url}" target="_blank">${article.source}</a>`).join('<br>')}
+                        </div>
+                        <div class="writeup-footer">
+                            <button onclick="regenerateWriteup(this)" class="rewrite-btn">Rewrite with custom instructions</button>
+                        </div>
+                    </div>
+                `;
+
+                const editorContainer = document.getElementById('editorContainer');
+                if (!editorContainer) {
+                    throw new Error('Editor container not found');
+                }
+
+                editorContainer.prepend(writeupElement);
+
+                // Clear selections
+                selectedArticles.clear();
+                updateMergedWriteupButton();
+                document.querySelectorAll('.article-card').forEach(card => {
+                    card.classList.remove('selected-for-merge');
+                });
+                document.querySelectorAll('.article-checkbox').forEach(checkbox => {
+                    checkbox.checked = false;
+                });
+
+            } catch (error) {
+                console.error('Error creating merged writeup:', error);
+                alert('Failed to create merged writeup: ' + error.message);
+            }
+        }
+
+        let currentRewriteContext = null;
+
+        function showRewriteModal() {
+            const modal = document.getElementById('rewriteModal');
+            modal.style.display = 'flex';
+            document.getElementById('rewriteInstructions').focus();
+        }
+
+        function closeRewriteModal() {
+            const modal = document.getElementById('rewriteModal');
+            modal.style.display = 'none';
+            document.getElementById('rewriteInstructions').value = '';
+            currentRewriteContext = null;
+        }
+
+        // Update the submitRewrite function to handle merged writeups
+        async function submitRewrite() {
+            const instructions = document.getElementById('rewriteInstructions').value.trim();
+            if (!instructions) {
+                alert('Please enter instructions for rewriting');
+                return;
+            }
+
+            if (!currentRewriteContext) return;
+
+            const { writeupCard, selectedText } = currentRewriteContext;
+            const writeupContent = writeupCard.querySelector('.writeup-content');
+            const articleId = writeupCard.dataset.articleId;
+            const articleIds = writeupCard.dataset.articleIds ? JSON.parse(writeupCard.dataset.articleIds) : null;
+
+            const baseInstructions = document.getElementById('apiInstructions').value;
+            const combinedInstructions = baseInstructions + ' ' + instructions;
+            
+            try {
+                // Show progress indicator
+                const progressIndicator = document.getElementById('progressIndicator');
+                progressIndicator.style.display = 'block';
+
+                // Check if this is a merged writeup
+                const isMergedWriteup = articleIds && articleIds.length > 1;
+                
+                if (isMergedWriteup) {
+                    // For merged writeups, we need to get all the article details
+                    const country = document.querySelector('.country-selector span.active').textContent.toLowerCase();
+                    const articles = [];
+                    
+                    // Fetch details for each article
+                    for (const id of articleIds) {
+                        const response = await fetch(`/api/article-preview/${country}/${id}`, fetchOptions);
+                        if (response.ok) {
+                            const article = await response.json();
+                            articles.push({
+                                id: id,
+                                title: article.title,
+                                source: article.source,
+                                url: article.url,
+                                published: article.published
+                            });
+                        }
+                    }
+
+                    if (articles.length === 0) {
+                        throw new Error('Failed to fetch article details');
+                    }
+
+                    const response = await fetch('/api/summarize-merged', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            articles: articles,
+                            instructions: combinedInstructions,
+                            selected_text: selectedText
+                        })
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || 'Failed to regenerate merged writeup');
+                    }
+
+                    const writeup = await response.json();
+                    
+                    // Update the writeup content
+                    writeupContent.innerHTML = `
+                        <strong>Regenerated Summary:</strong><br><br>
+                        ${writeup.summary}<br><br>
+                        <em>Sources:</em><br>
+                        ${articles.map(article => `<a href="${article.url}" target="_blank">${article.source}</a>`).join('<br>')}
+                    `;
+                } else {
+                    // Original single article rewrite logic
+                    const articleTitle = writeupCard.querySelector('h3').textContent;
+                    const articleSource = writeupCard.querySelector('.writeup-meta span').textContent.replace('Source: ', '');
+                    const articleUrl = writeupCard.querySelector('a').href;
+
+                    const response = await fetch('/api/summarize', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            article: {
+                                id: articleId,
+                                title: articleTitle,
+                                source: articleSource,
+                                url: articleUrl,
+                                published: new Date().toISOString()
+                            },
+                            instructions: combinedInstructions,
+                            selected_text: selectedText
+                        })
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || 'Failed to regenerate writeup');
+                    }
+
+                    const writeup = await response.json();
+                    
+                    // Update the writeup content
+                    writeupContent.innerHTML = `
+                        <strong>Regenerated Summary:</strong><br><br>
+                        ${writeup.summary}<br><br>
+                        <em>As reported by <a href="${writeup.article.url}" target="_blank">${writeup.article.source}</a></em>
+                    `;
+                }
+
+                // Hide progress indicator and modal
+                progressIndicator.style.display = 'none';
+                closeRewriteModal();
+            } catch (error) {
+                console.error('Error regenerating writeup:', error);
+                alert('Failed to regenerate writeup: ' + error.message);
+                // Hide progress indicator in case of error
+                const progressIndicator = document.getElementById('progressIndicator');
+                progressIndicator.style.display = 'none';
+            }
+        }
+
+        // Update the regenerateWriteup function to handle merged writeups
+        function regenerateWriteup(button) {
+            const writeupCard = button.closest('.writeup-card');
+            const selectedText = window.getSelection().toString().trim();
+            
+            if (!selectedText) {
+                alert('Please select the text you want to rewrite');
+                return;
+            }
+
+            const articleId = writeupCard.dataset.articleId;
+            const articleIds = writeupCard.dataset.articleIds ? JSON.parse(writeupCard.dataset.articleIds) : null;
+
+            if (!articleId && !articleIds) {
+                alert('Error: Could not find article ID(s)');
+                return;
+            }
+
+            // Store the context for the rewrite operation
+            currentRewriteContext = {
+                writeupCard,
+                selectedText
+            };
+
+            // Show the modal
+            showRewriteModal();
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('rewriteModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeRewriteModal();
+            }
+        });
+
+        // Handle Escape key to close modal
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeRewriteModal();
+            }
+        });
+
+        // Function to update pagination controls
+        function updatePaginationControls() {
+            const prevButton = document.getElementById('prevPage');
+            const nextButton = document.getElementById('nextPage');
+            const pageInfo = document.getElementById('pageInfo');
+            
+            prevButton.disabled = currentPage === 1;
+            nextButton.disabled = currentPage === totalPages;
+            
+            pageInfo.textContent = `Page ${currentPage} of ${totalPages} (${totalArticles} articles)`;
+        }
+
+        // Add event listeners for pagination buttons
+        document.getElementById('prevPage').addEventListener('click', () => {
+            if (currentPage > 1) {
+                currentPage--;
+                const country = document.querySelector('.country-selector span.active').textContent;
+                fetchArticles(country);
+            }
+        });
+
+        document.getElementById('nextPage').addEventListener('click', () => {
+            if (currentPage < totalPages) {
+                currentPage++;
+                const country = document.querySelector('.country-selector span.active').textContent;
+                fetchArticles(country);
+            }
+        });
+
+    </script>
+</body>
+</html>

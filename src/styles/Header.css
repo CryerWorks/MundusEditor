@@ -1,0 +1,95 @@
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+}
+
+.company-logo {
+    color: var(--deep-blue);
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.country-selector {
+    position: relative;
+    cursor: pointer;
+}
+
+.country-selector span {
+    margin: 0 5px;
+    color: #666;
+    transition: all 0.3s ease;
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+.country-selector span.active {
+    font-weight: bold;
+    color: #000;
+    background-color: #f0f0f0;
+}
+
+.country-selector:hover span:not(.active) {
+    transform: scale(0.9);
+}
+
+.country-selector:hover span.active {
+    transform: scale(1.1);
+}
+
+.app-header {
+    background: #fff;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 1800px;
+    margin: 0 auto;
+}
+
+.app-header h1 {
+    margin: 0;
+    color: var(--deep-blue);
+    font-size: 24px;
+    font-weight: 600;
+}
+
+.database-selector {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.database-selector label {
+    color: #666;
+    font-weight: 500;
+}
+
+.database-selector select {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: #fff;
+    color: #333;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.database-selector select:hover {
+    border-color: var(--deep-blue);
+}
+
+.database-selector select:focus {
+    outline: none;
+    border-color: var(--deep-blue);
+    box-shadow: 0 0 0 2px rgba(0,51,102,0.1);
+} 
