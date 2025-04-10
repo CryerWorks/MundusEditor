@@ -42,6 +42,23 @@ def get_db_connection(country_code):
     conn.text_factory = str
     return conn
 
+# Root route
+@app.route('/')
+def index():
+    return jsonify({
+        'status': 'success',
+        'message': 'Mundus Editor API is running',
+        'version': '1.0.0'
+    })
+
+# Health check route
+@app.route('/health')
+def health_check():
+    return jsonify({
+        'status': 'healthy',
+        'timestamp': datetime.now().isoformat()
+    })
+
 @app.route("/api/articles/<country>", methods=["GET"])
 def get_articles(country):
     try:

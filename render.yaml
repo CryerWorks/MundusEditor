@@ -13,7 +13,7 @@ services:
     name: mundus-editor-backend
     env: python
     buildCommand: pip install -r requirements.txt
-    startCommand: python backend/backend.py
+    startCommand: gunicorn backend.backend:app
     envVars:
       - key: OPENAI_API_KEY
         fromService:
@@ -21,4 +21,5 @@ services:
           type: env
           property: OPENAI_API_KEY
       - key: FLASK_ENV
-        value: production 
+        value: production
+    healthCheckPath: /health 
