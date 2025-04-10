@@ -16,13 +16,14 @@ app = Flask(__name__)
 
 # Configure CORS for production
 CORS(app, resources={
-    r"/api/*": {
+    r"/*": {  # Allow all routes
         "origins": [
             "http://localhost:5173",  # Development
             "https://munduseditor.onrender.com"  # Production
         ],
         "methods": ["GET", "POST", "OPTIONS"],
-        "allow_headers": ["Content-Type"]
+        "allow_headers": ["Content-Type"],
+        "supports_credentials": True
     }
 })
 
