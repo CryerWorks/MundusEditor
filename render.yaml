@@ -1,9 +1,9 @@
 services:
-  - type: web
+  - type: static
     name: mundus-editor-frontend
     env: node
     buildCommand: npm install && npm run build
-    startCommand: npm run preview
+    staticPublishPath: dist
     envVars:
       - key: VITE_API_URL
         value: https://mundus-editor-backend.onrender.com
