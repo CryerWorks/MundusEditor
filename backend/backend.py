@@ -18,6 +18,14 @@ CORS(app)  # Allow frontend access
 # Configure OpenAI
 openai.api_key = os.getenv('OPENAI_API_KEY')
 
+# Production configuration
+if os.getenv('FLASK_ENV') == 'production':
+    app.config['DEBUG'] = False
+    app.config['TESTING'] = False
+else:
+    app.config['DEBUG'] = True
+    app.config['TESTING'] = True
+
 DATABASES = {
     'swe': 'swedish_news_URLs.db',
     'pol': 'polish_news_URLs.db', 
@@ -374,4 +382,5 @@ SUMMARY: [Your summary here]"""
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True) 
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port) 
