@@ -100,12 +100,13 @@ const NewsBlock: React.FC<NewsBlockProps> = ({ country, onArticleSelect, selecte
         e.stopPropagation();
         setGeneratingWriteup(true);
         try {
-            const articleData = {
+            const articleData: Article = {
                 id: article.id,
                 title: article.title,
                 source: article.source,
                 url: article.url,
                 published: article.published,
+                scraped_at: article.scraped_at,
                 Category: article.Category
             };
             
@@ -215,7 +216,7 @@ const NewsBlock: React.FC<NewsBlockProps> = ({ country, onArticleSelect, selecte
                                         checked={isArticleSelected(article)}
                                         onChange={(e) => {
                                             e.stopPropagation();
-                                            handleCheckboxClick(e, article);
+                                            handleCheckboxClick(e as unknown as React.MouseEvent, article);
                                         }}
                                         onClick={(e) => {
                                             e.stopPropagation();

@@ -1,4 +1,4 @@
-import { Article, CountryCode, FilterState, Writeup } from '../types';
+import { Article, CountryCode, FilterState } from '../types';
 
 const API_BASE_URL = 'http://localhost:5000/api';
 
