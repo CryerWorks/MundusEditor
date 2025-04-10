@@ -12,9 +12,7 @@ export const fetchArticles = async (country: CountryCode, page: number = 1, filt
         time: filters.time
     });
 
-    const response = await fetch(`${API_BASE_URL}/api/articles/${country}?${params}`, {
-        mode: 'no-cors'
-    });
+    const response = await fetch(`${API_BASE_URL}/api/articles/${country}?${params}`);
     if (!response.ok) {
         throw new Error('Failed to fetch articles');
     }
@@ -22,9 +20,7 @@ export const fetchArticles = async (country: CountryCode, page: number = 1, filt
 };
 
 export const fetchSources = async (country: CountryCode): Promise<string[]> => {
-    const response = await fetch(`${API_BASE_URL}/api/sources/${country}`, {
-        mode: 'no-cors'
-    });
+    const response = await fetch(`${API_BASE_URL}/api/sources/${country}`);
     if (!response.ok) {
         throw new Error('Failed to fetch sources');
     }
@@ -32,9 +28,7 @@ export const fetchSources = async (country: CountryCode): Promise<string[]> => {
 };
 
 export const fetchCategories = async (country: CountryCode): Promise<string[]> => {
-    const response = await fetch(`${API_BASE_URL}/api/categories/${country}`, {
-        mode: 'no-cors'
-    });
+    const response = await fetch(`${API_BASE_URL}/api/categories/${country}`);
     if (!response.ok) {
         throw new Error('Failed to fetch categories');
     }
@@ -42,9 +36,7 @@ export const fetchCategories = async (country: CountryCode): Promise<string[]> =
 };
 
 export const fetchArticlePreview = async (country: CountryCode, articleId: number) => {
-    const response = await fetch(`${API_BASE_URL}/api/article-preview/${country}/${articleId}`, {
-        mode: 'no-cors'
-    });
+    const response = await fetch(`${API_BASE_URL}/api/article-preview/${country}/${articleId}`);
     if (!response.ok) {
         throw new Error('Failed to fetch article preview');
     }
@@ -61,7 +53,6 @@ export const summarizeArticle = async (article: Article, instructions: string, s
 
         const response = await fetch(`${API_BASE_URL}/api/summarize`, {
             method: 'POST',
-            mode: 'no-cors',
             headers: {
                 'Content-Type': 'application/json',
             },
@@ -112,7 +103,6 @@ export const summarizeMergedArticles = async (articles: Article[], instructions:
 
         const response = await fetch(`${API_BASE_URL}/api/summarize-merged`, {
             method: 'POST',
-            mode: 'no-cors',
             headers: {
                 'Content-Type': 'application/json',
             },
