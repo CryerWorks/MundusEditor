@@ -19,7 +19,7 @@ CORS(app, resources={
     r"/api/*": {
         "origins": [
             "http://localhost:5173",  # Development
-            "https://mundus-frontend.onrender.com"  # Production
+            "https://munduseditor.onrender.com"  # Production
         ],
         "methods": ["GET", "POST", "OPTIONS"],
         "allow_headers": ["Content-Type"]
