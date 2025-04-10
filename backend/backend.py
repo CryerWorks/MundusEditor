@@ -13,7 +13,18 @@ from datetime import datetime, timedelta
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app)  # Allow frontend access
+
+# Configure CORS for production
+CORS(app, resources={
+    r"/api/*": {
+        "origins": [
+            "http://localhost:5173",  # Development
+            "https://mundus-frontend.onrender.com"  # Production
+        ],
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type"]
+    }
+})
 
 # Configure OpenAI
 openai.api_key = os.getenv('OPENAI_API_KEY')
@@ -29,6 +40,11 @@ def get_db_connection(country_code):
     db_path = DATABASES.get(country_code.lower())
     if not db_path:
         raise ValueError("Unsupported country code")
+    
+    # Ensure the database file exists
+    if not os.path.exists(db_path):
+        raise FileNotFoundError(f"Database file {db_path} not found")
+    
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     conn.text_factory = str
@@ -374,4 +390,6 @@ SUMMARY: [Your summary here]"""
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True) 
+    port = int(os.environ.get('PORT', 5000))
+    host = os.environ.get('HOST', '0.0.0.0')
+    app.run(host=host, port=port) 

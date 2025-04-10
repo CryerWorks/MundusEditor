@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: mundus-backend
+    env: python
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: python backend/backend.py
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: FLASK_ENV
+        value: production
+      - key: FLASK_APP
+        value: backend.py
+    disk:
+      name: news-databases
+      mountPath: /opt/render/project/src/backend
+      sizeGB: 1
+
+  - type: web
+    name: mundus-frontend
+    env: node
+    buildCommand: npm install && npm run build
+    startCommand: npm run preview
+    envVars:
+      - key: VITE_API_URL
+        value: https://mundus-backend.onrender.com
+    staticPublishPath: dist 

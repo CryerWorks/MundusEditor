@@ -1,6 +1,6 @@
-# Mundus Editor React
+# Mundus Editor
 
-A modern React application for news article management and summarization.
+A news article management and summarization application built with React and Flask.
 
 ## Features
 
@@ -10,43 +10,74 @@ A modern React application for news article management and summarization.
 - Writeup generation and management
 - Modern, responsive UI
 
-## Prerequisites
+## Local Development
 
-- Node.js (v18 or higher)
-- Python 3.8 or higher
-- OpenAI API key
-
-## Setup
-
-1. Clone the repository
-2. Install frontend dependencies:
-   ```bash
-   npm install
-   ```
-3. Install backend dependencies:
+### Backend Setup
+1. Navigate to the backend directory:
    ```bash
    cd backend
+   ```
+2. Create a virtual environment:
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
+3. Install dependencies:
+   ```bash
    pip install -r requirements.txt
    ```
-4. Create a `.env` file in the backend directory with your OpenAI API key:
+4. Create a `.env` file with your OpenAI API key:
    ```
    OPENAI_API_KEY=your_api_key_here
    ```
-
-## Running the Application
-
-1. Start the backend server:
+5. Start the backend server:
    ```bash
-   cd backend
    python backend.py
    ```
-   The backend will run on http://localhost:5000
 
-2. Start the frontend development server:
+### Frontend Setup
+1. Navigate to the root directory
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Start the development server:
    ```bash
    npm run dev
    ```
-   The frontend will run on http://localhost:5173
+
+## Deployment
+
+This application is configured for deployment on Render. The deployment consists of two services:
+
+1. Backend Service (`mundus-backend`)
+   - Python web service
+   - Handles API requests and database operations
+   - Requires OpenAI API key as environment variable
+
+2. Frontend Service (`mundus-frontend`)
+   - Static web service
+   - Serves the React application
+   - Automatically configured to connect to the backend service
+
+### Deployment Steps
+1. Push your code to a Git repository
+2. Connect your repository to Render
+3. Render will automatically detect the `render.yaml` configuration
+4. Set the `OPENAI_API_KEY` environment variable in the Render dashboard
+5. Deploy both services
+
+## Environment Variables
+
+### Backend
+- `OPENAI_API_KEY`: Your OpenAI API key
+- `FLASK_ENV`: Set to 'production' in production
+- `FLASK_APP`: Set to 'backend.py'
+
+### Frontend
+- `VITE_API_URL`: The URL of the backend service
+  - Development: http://localhost:5000
+  - Production: https://mundus-backend.onrender.com
 
 ## Project Structure
 
