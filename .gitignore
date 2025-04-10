@@ -56,7 +56,6 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 
-# Database files
-*.db
+# Database files (except our news databases)
 *.sqlite
 *.sqlite3
