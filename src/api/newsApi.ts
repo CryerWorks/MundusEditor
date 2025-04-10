@@ -1,6 +1,6 @@
 import { Article, CountryCode, FilterState } from '../types';
 
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = 'https://mundus-backend.onrender.com';
 
 export const fetchArticles = async (country: CountryCode, page: number = 1, filters: FilterState) => {
     const params = new URLSearchParams({
